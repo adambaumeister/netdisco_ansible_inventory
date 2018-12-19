@@ -1,0 +1,40 @@
+# Define your methods of grouping hosts in ansible dynamically here
+# Input (REQUIRED)
+# Input data source
+# Map Data from a given source to ansible friendly groups
+Input:
+  # Input name, can be anything
+  netdisco_switches_by_site_model:
+    # Type
+    type: psql
+    # Database name
+    dbname: netdisco
+    # Database information
+    host: your-netdisco-db-host.org.com
+    user: ansible-db-user
+    password: ansible-db-password
+    # Query to retrieve information
+    # PSQL Objects map fields from sql -> fields in inventory
+    select: "SELECT dns,model FROM device
+             WHERE model IS NOT NULL AND model != '' AND dns != ''
+             AND model NOT LIKE '.%'
+             AND last_discover > NOW() - INTERVAL '10 days'
+             ORDER BY model;"
+
+    # Transform (OPTIONAL)
+    # takes a any data field (keyed by SQL field name) and extracts a substring
+    transform:
+      # :: Field (str): Data field to manipulate
+      # :: Regex (RE String): Substring match
+      # :: Out (str): Field Key for transformed data
+      - field: dns
+        regex: '([a-zA-Z]+)\-'
+        out: site
+    #  Format of ansible group field
+    group_field: '{{ site }}-{{ model }}'
+    # Field that contains actual host
+    host_field: dns
+
+Output:
+  ansible:
+    type: AnsibleJSON

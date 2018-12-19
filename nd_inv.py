@@ -210,7 +210,7 @@ args = parser.parse_args()
 # Dump json
 rundir = sys.path[0]
 if args.list:
-    c = ScriptConfiguration('{0}/../inv.yaml'.format(rundir))
+    c = ScriptConfiguration('{0}/../inv.yml'.format(rundir))
     c.generate()
 # dump nothing
 elif args.host:

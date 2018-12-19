@@ -1,10 +1,12 @@
 # Define your methods of grouping hosts in ansible dynamically here
-# Input (REQUIRED)
+## Input (REQUIRED)
 # Input data source
 # Map Data from a given source to ansible friendly groups
 Input:
   # Input name, can be anything
-  netdisco_switches_by_site_model:
+  # Multiple input names can be added whem multiple queries are required, or different grouping.
+  # For instance, the below groups by Model, you may want to group by DNS, or site, or some other attributes.
+  netdisco_switches_by_model:
     # Type
     type: psql
     # Database name
@@ -21,17 +23,8 @@ Input:
              AND last_discover > NOW() - INTERVAL '10 days'
              ORDER BY model;"
 
-    # Transform (OPTIONAL)
-    # takes a any data field (keyed by SQL field name) and extracts a substring
-    transform:
-      # :: Field (str): Data field to manipulate
-      # :: Regex (RE String): Substring match
-      # :: Out (str): Field Key for transformed data
-      - field: dns
-        regex: '([a-zA-Z]+)\-'
-        out: site
-    #  Format of ansible group field
-    group_field: '{{ site }}-{{ model }}'
+    #  Format of ansible group field. Any rows that have identical group_fields are grouped together.
+    group_field: '{{ model }}'
     # Field that contains actual host
     host_field: dns
 

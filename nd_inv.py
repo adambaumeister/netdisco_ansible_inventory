@@ -7,6 +7,7 @@ from jinja2 import Template
 import json
 import argparse
 import sys
+import os
 
 class ScriptConfiguration:
     def __init__(self, filename):
@@ -15,6 +16,7 @@ class ScriptConfiguration:
         self.type_sw = {
             'psql': psql,
             'AnsibleJSON': AnsibleJSON,
+            'AnsibleINI': AnsibleINI,
         }
         yaml_file = open(filename, 'r')
         try:
@@ -39,6 +41,12 @@ class ScriptConfiguration:
             t = attrs['type']
             i = self.type_sw[t](attrs)
             self.outputs[name] = i
+
+    # Only honor the passed input
+    def filter_outputs(self, output):
+        self.outputs = {
+            output: self.outputs[output]
+        }
 
     def generate(self):
         # Init inputs
@@ -65,6 +73,15 @@ class Output(object):
                 raise ValueError("Invalid YAML - missing {0} in struct".format(k))
         self.config = config
 
+    def get(self):
+        return
+
+    def out(self):
+        if "file" in self.config:
+            f = open(self.config["file"], "w")
+            f.write(self.get())
+        else:
+            print(self.get())
 
 # Ansible formatted JSON output method
 class AnsibleJSON(Output):
@@ -84,12 +101,54 @@ class AnsibleJSON(Output):
         # Required to prevent --host being called for every host
         print(json.dumps(self.formatted, indent=4, sort_keys=True, separators=(',', ': ')))
 
-    def out(self):
+    def print(self):
         self.formatted['_meta'] = {
             'hostvars': {}
         }
         print(json.dumps(self.formatted))
 
+    def get(self):
+        self.formatted['_meta'] = {
+            'hostvars': {}
+        }
+        return json.dumps(self.formatted)
+
+class AnsibleINI(Output):
+    """
+    AnsibleINI Format 
+    Example:
+    [ group ]
+    host1
+    host2 
+    """
+    def __init__(self, config):
+        super(AnsibleINI, self).__init__(config)
+        self.formatted = {}
+
+    # Add grouped data
+    def add_grouped_data(self, grouped):
+        for group, hosts in grouped.items():
+            l = "\n".join(hosts)
+            self.formatted[group] = l
+
+    def dump(self):
+        lines =[] 
+        for group, hosts in self.formatted.items():
+            lines.append("[{0}]".format(group))
+            lines.append("{0}".format(hosts))
+            # Newline
+            lines.append("")
+        return lines
+
+    def print(self):
+        for line in self.dump():
+            print(line)
+
+    def get(self):
+        s = ''
+        for line in self.dump():
+            s = s + line + "\n"
+        return s
 
 # Base Class for Inputs
 class Input(object):
@@ -205,13 +264,24 @@ class Data:
 parser = argparse.ArgumentParser()
 parser.add_argument('--list', action="store_true", dest="list", help="List output")
 parser.add_argument('--host', action="store_true", dest="host", help="Host vars")
+parser.add_argument('--output', action="store", dest="output", help="Only run a specific output.")
 
 args = parser.parse_args()
 # Dump json
 rundir = sys.path[0]
+# Config file is one directory back usually, in the root of the ansible directory
+scf = os.path.join(rundir, "..", "inv.yml")
+# If it isn't then we use the current directory.
+if not os.path.exists(scf):
+    scf = os.path.join("inv.yml")
 if args.list:
-    c = ScriptConfiguration('{0}/../inv.yml'.format(rundir))
+    c = ScriptConfiguration(scf)
     c.generate()
+elif args.output:
+    c = ScriptConfiguration(scf)
+    c.filter_outputs(args.output)
+    c.generate()
+
 # dump nothing
 elif args.host:
     print({})

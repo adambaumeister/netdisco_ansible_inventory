@@ -12,22 +12,32 @@ Input:
     # Database name
     dbname: netdisco
     # Database information
-    host: your-netdisco-db-host.org.com
-    user: ansible-db-user
-    password: ansible-db-password
+    host: [your database host]
+    user: [your database user]
+    password: [your database password]
     # Query to retrieve information
     # PSQL Objects map fields from sql -> fields in inventory
     select: "SELECT dns,model FROM device
              WHERE model IS NOT NULL AND model != '' AND dns != ''
              AND model NOT LIKE '.%'
              AND last_discover > NOW() - INTERVAL '10 days'
-             ORDER BY model;"
+             ORDER BY model"
 
     #  Format of ansible group field. Any rows that have identical group_fields are grouped together.
     group_field: '{{ model }}'
     # Field that contains actual host
     host_field: dns
 
+# Output types
+# By default, all outputs will be run
 Output:
+  # Identifier, can be anything
   ansible:
+    # Type of output
     type: AnsibleJSON
+  ansibleini:
+    type: AnsibleINI
+    # Optional: File specifies an output file 
+    # This will write the output to a file instead of to stdout
+    #file: C:\Temp\ansibleini.txt
+  

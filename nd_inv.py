@@ -101,12 +101,6 @@ class AnsibleJSON(Output):
         # Required to prevent --host being called for every host
         print(json.dumps(self.formatted, indent=4, sort_keys=True, separators=(',', ': ')))
 
-    def print(self):
-        self.formatted['_meta'] = {
-            'hostvars': {}
-        }
-        print(json.dumps(self.formatted))
-
     def get(self):
         self.formatted['_meta'] = {
             'hostvars': {}
@@ -139,10 +133,6 @@ class AnsibleINI(Output):
             # Newline
             lines.append("")
         return lines
-
-    def print(self):
-        for line in self.dump():
-            print(line)
 
     def get(self):
         s = ''

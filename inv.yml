@@ -32,10 +32,7 @@ Input:
         # Column from database to retrieve
       - column: vendor
         # Name of hostvar
-        var: vendor
-
-
-        
+        var: vendor      
     
 # Output types
 # By default, all outputs will be run
@@ -47,6 +44,8 @@ Output:
   ansibleini:
     type: AnsibleINI
     # Optional: File specifies an output file 
+    # Note: File should always be set unless debugging or a one-off manual run, setting ansibleini output without a file
+    # breaks the stdout formatting that ansible requires 
     # This will write the output to a file instead of to stdout
-    #file: C:\Temp\ansibleini.txt
+    file: C:\Temp\ansibleini.txt
   

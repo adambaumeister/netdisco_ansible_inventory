@@ -59,6 +59,9 @@ class ScriptConfiguration:
             data = i.transform(data)
             grouped = i.group(data)
             for name, o in self.outputs.items():
+                if "host_vars" in i.config:
+                    host_vars = i.vars(data)
+                    o.add_host_vars(host_vars)
                 o.add_grouped_data(grouped)
 
         # Write outputs
@@ -92,6 +95,7 @@ class AnsibleJSON(Output):
     def __init__(self, config):
         super(AnsibleJSON, self).__init__(config)
         self.formatted = {}
+        self.hostvars = {}
 
     # Add grouped data
     def add_grouped_data(self, grouped):
@@ -101,19 +105,22 @@ class AnsibleJSON(Output):
             }
             self.formatted[group] = struct
 
+    def add_host_vars(self, vars):
+        self.hostvars = vars
+
     def dump(self):
         # Required to prevent --host being called for every host
         print(json.dumps(self.formatted, indent=4, sort_keys=True, separators=(',', ': ')))
 
     def prints(self):
         self.formatted['_meta'] = {
-            'hostvars': {}
+            'hostvars': self.hostvars
         }
         print(json.dumps(self.formatted))
 
     def get(self):
         self.formatted['_meta'] = {
-            'hostvars': {}
+            'hostvars': self.hostvars
         }
         return json.dumps(self.formatted)
 
@@ -128,13 +135,31 @@ class AnsibleINI(Output):
     def __init__(self, config):
         super(AnsibleINI, self).__init__(config)
         self.formatted = {}
+        self.hostvars = {}
 
     # Add grouped data
     def add_grouped_data(self, grouped):
+        hosts_with_vars = []
         for group, hosts in grouped.items():
-            l = "\n".join(hosts)
+            for host in hosts:
+                if host in self.hostvars:
+                    str = self.vars_to_string(self.hostvars[host])
+                    str = "{} {}".format(host, str)
+                    hosts_with_vars.append(str)
+                else:
+                    hosts_with_vars.append(host)
+
+            l = "\n".join(hosts_with_vars)
             self.formatted[group] = l
 
+    def vars_to_string(self, vars):
+        pairs = []
+        for k, v in vars.items():
+            s = "{}={}".format(k, v)
+            pairs.append(s)
+
+        return " ".join(pairs)
+    
     def dump(self):
         lines =[] 
         for group, hosts in self.formatted.items():
@@ -143,6 +168,9 @@ class AnsibleINI(Output):
             # Newline
             lines.append("")
         return lines
+
+    def add_host_vars(self, vars):
+        self.hostvars = vars
 
     def prints(self):
         for line in self.dump():
@@ -204,6 +232,18 @@ class Input(object):
         grouped = data.group(self.config['group_field'], self.config['host_field'])
         return grouped
 
+    def vars(self, data):
+        vars = {}
+        for row in data.get_rows():
+            v = {}
+            for var_def in self.config['host_vars']:
+                col = var_def['column']
+                vard = var_def['var']
+                if col in row:
+                    v[vard] = row[col]
+            vars[row[self.config['host_field']]] = v
+
+        return vars
 # Postgres Input method
 class psql(Input):
     def __init__(self, config, use=None):
@@ -264,6 +304,8 @@ class Transform:
 class Data:
     def __init__(self):
         self.rows = []
+        # Host variarbles 
+        self.vars = {}
 
     def add_row(self, dict):
         self.rows.append(dict)

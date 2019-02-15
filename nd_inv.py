@@ -34,7 +34,12 @@ class ScriptConfiguration:
         # Load inputs
         for name, attrs in yaml_obj['Input'].items():
             t = attrs['type']
-            i = self.type_sw[t](attrs)
+            if "use" in attrs:
+                print(yaml_obj['Input'][attrs["use"]])
+                i = self.type_sw[t](attrs, use=yaml_obj['Input'][attrs["use"]])
+            else:
+                i = self.type_sw[t](attrs)
+
             self.inputs[name] = i
 
         for name, attrs in yaml_obj['Output'].items():
@@ -101,7 +106,7 @@ class AnsibleJSON(Output):
         # Required to prevent --host being called for every host
         print(json.dumps(self.formatted, indent=4, sort_keys=True, separators=(',', ': ')))
 
-    def print(self):
+    def prints(self):
         self.formatted['_meta'] = {
             'hostvars': {}
         }
@@ -140,7 +145,7 @@ class AnsibleINI(Output):
             lines.append("")
         return lines
 
-    def print(self):
+    def prints(self):
         for line in self.dump():
             print(line)
 
@@ -150,23 +155,45 @@ class AnsibleINI(Output):
             s = s + line + "\n"
         return s
 
+
 # Base Class for Inputs
 class Input(object):
-    def __init__(self, config):
+    def __init__(self, config, use=None):
+        """
+        Base Input class
+        :param config: Dictionary of configuration for this input type
+        :param use: Dictionary of configuration to inherit
+        """
         struct = [
             'group_field',
             'host_field'
         ]
+
         self.transforms = []
+
+        self.config = config
+        if use:
+            self.use(use)
+
         for k in struct:
             if k not in config:
                 raise ValueError("Invalid YAML - missing {0} in struct".format(k))
-        self.config = config
 
         if 'transform' in self.config:
             for transform in self.config['transform']:
                 t = Transform(transform)
                 self.transforms.append(t)
+
+    def use(self, config):
+        """
+        If a "use" statement is configured, inherit settings that aren't configured from it
+        :var config (DICT): Dictionary of configuration for this input
+        :return: None
+        """
+        for k, v in config.items():
+            if k not in self.config:
+                self.config[k] = v
+
 
     def transform(self, data):
         newdata = data
@@ -180,12 +207,13 @@ class Input(object):
 
 # Postgres Input method
 class psql(Input):
-    def __init__(self, config):
-        super(psql, self).__init__(config)
+    def __init__(self, config, use=None):
+        print(use)
+        super(psql, self).__init__(config, use)
         self.dsn = "dbname='{0}' user='{1}' host='{2}' password='{3}'".format(
-            config['dbname'], config['user'], config['host'], config['password']
+            self.config['dbname'], self.config['user'], self.config['host'], self.config['password']
         )
-        self.query = config['select']
+        self.query = self.config['select']
 
     def get(self):
         conn = psycopg2.connect(self.dsn)

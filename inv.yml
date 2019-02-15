@@ -17,7 +17,7 @@ Input:
     password: [your database password]
     # Query to retrieve information
     # PSQL Objects map fields from sql -> fields in inventory
-    select: "SELECT dns,model FROM device
+    select: "SELECT dns,model,vendor FROM device
              WHERE model IS NOT NULL AND model != '' AND dns != ''
              AND model NOT LIKE '.%'
              AND last_discover > NOW() - INTERVAL '10 days'
@@ -27,7 +27,13 @@ Input:
     group_field: '{{ model }}'
     # Field that contains actual host
     host_field: dns
-
+    # Host_vars maps extra column data to host variables, usable within playbooks
+    host_vars:
+        # Column from database to retrieve
+      - column: vendor
+        # Name of hostvar
+        var: vendor      
+    
 # Output types
 # By default, all outputs will be run
 Output:
@@ -38,6 +44,8 @@ Output:
   ansibleini:
     type: AnsibleINI
     # Optional: File specifies an output file 
+    # Note: File should always be set unless debugging or a one-off manual run, setting ansibleini output without a file
+    # breaks the stdout formatting that ansible requires 
     # This will write the output to a file instead of to stdout
-    #file: C:\Temp\ansibleini.txt
+    file: C:\Temp\ansibleini.txt
   

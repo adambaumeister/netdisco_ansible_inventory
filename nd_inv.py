@@ -35,7 +35,6 @@ class ScriptConfiguration:
         for name, attrs in yaml_obj['Input'].items():
             t = attrs['type']
             if "use" in attrs:
-                print(yaml_obj['Input'][attrs["use"]])
                 i = self.type_sw[t](attrs, use=yaml_obj['Input'][attrs["use"]])
             else:
                 i = self.type_sw[t](attrs)
@@ -208,7 +207,6 @@ class Input(object):
 # Postgres Input method
 class psql(Input):
     def __init__(self, config, use=None):
-        print(use)
         super(psql, self).__init__(config, use)
         self.dsn = "dbname='{0}' user='{1}' host='{2}' password='{3}'".format(
             self.config['dbname'], self.config['user'], self.config['host'], self.config['password']

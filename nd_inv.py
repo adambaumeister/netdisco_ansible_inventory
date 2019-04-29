@@ -20,7 +20,7 @@ class ScriptConfiguration:
         }
         yaml_file = open(filename, 'r')
         try:
-            yaml_obj = yaml.load(yaml_file)
+            yaml_obj = yaml.safe_load(yaml_file)
         except yaml.YAMLError as err:
             print(err)
             exit()
@@ -348,7 +348,7 @@ if args.list:
 elif args.output:
     c = ScriptConfiguration(scf)
     c.filter_outputs(args.output)
-    c.generate()
+    c.generate() de
 
 # dump nothing
 elif args.host:

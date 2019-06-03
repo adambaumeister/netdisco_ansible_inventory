@@ -348,7 +348,7 @@ if args.list:
 elif args.output:
     c = ScriptConfiguration(scf)
     c.filter_outputs(args.output)
-    c.generate() de
+    c.generate()
 
 # dump nothing
 elif args.host:

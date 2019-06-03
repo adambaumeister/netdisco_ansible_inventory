@@ -20,7 +20,7 @@ class ScriptConfiguration:
         }
         yaml_file = open(filename, 'r')
         try:
-            yaml_obj = yaml.load(yaml_file)
+            yaml_obj = yaml.safe_load(yaml_file)
         except yaml.YAMLError as err:
             print(err)
             exit()
